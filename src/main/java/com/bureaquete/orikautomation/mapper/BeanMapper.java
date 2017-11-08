@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -98,7 +99,7 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 					if (bEntry.getKey() * 2 > 1) {
 						MappedField b = bEntry.getValue();
 						if (areTypesCompatible(a.getType(), b.getType())) {
-							classMapBuilder.field(a.getName(), b.getName());
+							classMapBuilder.field(getFinalName(a), getFinalName(b));
 							if (a.getGenericType() != null && b.getGenericType() != null) {
 								setMapping(a.getGenericType(), b.getGenericType());
 							}
@@ -148,6 +149,10 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 
 	private Double getSimilarity(MappedField pA, MappedField pB) {
 		return stringComparator.similarity(pA.getName(), pB.getName());
+	}
+
+	public String getFinalName(MappedField field) {
+		return (Objects.isNull(field.getParent()) ? "" : field.getParent().getName() + ".") + field.getName();
 	}
 
 	private MappedField toMappedField(Field field) {
