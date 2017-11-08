@@ -84,7 +84,7 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 				.filter(field -> !bMappings.contains(field))
 				.collect(Collectors.toList());
 		bUnmapped.addAll(FieldUtils.getAllFieldsList(classB).stream()
-				.filter(field -> !field.isSynthetic() && !field.isEnumConstant() && classA.equals(field.getType().getDeclaringClass()))
+				.filter(field -> !field.isSynthetic() && !field.isEnumConstant() && classB.equals(field.getType().getDeclaringClass()))
 				.map(this::toMappedField)
 				.flatMap(nestedField -> FieldUtils.getAllFieldsList(nestedField.getType()).stream()
 						.filter(field -> !field.isSynthetic())
