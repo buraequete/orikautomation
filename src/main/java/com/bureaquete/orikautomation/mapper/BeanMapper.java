@@ -80,7 +80,7 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 				.ifPresent(bEntry -> {
 					if (bEntry.getKey() * 2 > 1) {
 						MappedField b = bEntry.getValue();
-						if (a.getType().equals(b.getType())) {
+						if (areTypesCompatible(a.getType(), b.getType())) {
 							classMapBuilder.field(a.getName(), b.getName());
 							if (a.getGenericType() != null && b.getGenericType() != null) {
 								setMapping(a.getGenericType(), b.getGenericType());
@@ -157,5 +157,9 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		return new MappedField().setName(expression)
 				.setType(type.getRawType())
 				.setGenericType(type.getComponentType() != null ? type.getComponentType().getRawType() : null);
+	}
+
+	private boolean areTypesCompatible(Class<?> classA, Class<?> classB) {
+		return classA.equals(classB) || Arrays.stream(classA.getInterfaces()).filter(Arrays.asList(classB.getInterfaces())::contains).count() > 0;
 	}
 }
