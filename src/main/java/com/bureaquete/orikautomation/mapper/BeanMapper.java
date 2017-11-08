@@ -65,11 +65,13 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		List<MappedField> bMappings = classMap.getFieldsMapping().stream()
 				.map(fm -> toMappedField(fm.getBType(), fm.getDestinationExpression()))
 				.collect(Collectors.toList());
-		List<MappedField> aUnmapped = Arrays.stream(FieldUtils.getAllFields(classA))
+		List<MappedField> aUnmapped = FieldUtils.getAllFieldsList(classA).stream()
+				.filter(field -> !field.isSynthetic())
 				.map(this::toMappedField)
 				.filter(field -> !aMappings.contains(field))
 				.collect(Collectors.toList());
-		List<MappedField> bUnmapped = Arrays.stream(FieldUtils.getAllFields(classB))
+		List<MappedField> bUnmapped = FieldUtils.getAllFieldsList(classB).stream()
+				.filter(field -> !field.isSynthetic())
 				.map(this::toMappedField)
 				.filter(field -> !bMappings.contains(field))
 				.collect(Collectors.toList());
