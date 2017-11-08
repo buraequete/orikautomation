@@ -1,5 +1,6 @@
 package com.bureaquete.orikautomation.bean;
 
+import java.util.Objects;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -11,4 +12,8 @@ public class MappedField {
 	Class<?> genericType;
 	MappedField parent;
 	String name;
+
+	public String getName() {
+		return (Objects.isNull(parent) ? "" : parent.name + ".") + this.name;
+	}
 }
