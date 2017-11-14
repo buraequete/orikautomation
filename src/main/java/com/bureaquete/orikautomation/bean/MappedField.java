@@ -10,5 +10,6 @@ public class MappedField {
 	Class<?> type;
 	Class<?> genericType;
 	MappedField parent;
+	Boolean nested;
 	String name;
 }

@@ -2,37 +2,35 @@ package com.bureaquete.orikautomation.mapper;
 
 import com.bureaquete.orikautomation.annotation.Mapped;
 import com.bureaquete.orikautomation.bean.MappedField;
+import com.google.common.collect.ArrayTable;
+import com.google.common.collect.Table;
 import info.debatty.java.stringsimilarity.NormalizedLevenshtein;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import ma.glasnost.orika.Converter;
 import ma.glasnost.orika.Mapper;
 import ma.glasnost.orika.MapperFactory;
 import ma.glasnost.orika.impl.ConfigurableMapper;
 import ma.glasnost.orika.impl.DefaultMapperFactory;
-import ma.glasnost.orika.metadata.ClassMap;
 import ma.glasnost.orika.metadata.ClassMapBuilder;
-import ma.glasnost.orika.metadata.Type;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.stereotype.Component;
 
-@Component
 public class BeanMapper extends ConfigurableMapper implements ApplicationContextAware {
 
 	private MapperFactory factory;
 	private ApplicationContext applicationContext;
-	private NormalizedLevenshtein stringComparator = new NormalizedLevenshtein();
+	private NormalizedLevenshtein comparator = new NormalizedLevenshtein();
 
 	public BeanMapper() {
 		super(false);
@@ -58,60 +56,6 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 	}
 
-	private void setMapping(Class<?> classA, Class<?> classB) {
-		ClassMapBuilder<?, ?> classMapBuilder = factory.classMap(classA, classB);
-		ClassMap<?, ?> classMap = classMapBuilder.toClassMap();
-		List<MappedField> aMappings = classMap.getFieldsMapping().stream()
-				.map(fm -> toMappedField(fm.getAType(), fm.getSourceExpression()))
-				.collect(Collectors.toList());
-		List<MappedField> bMappings = classMap.getFieldsMapping().stream()
-				.map(fm -> toMappedField(fm.getBType(), fm.getDestinationExpression()))
-				.collect(Collectors.toList());
-		List<MappedField> aUnmapped = FieldUtils.getAllFieldsList(classA).stream()
-				.filter(field -> !field.isSynthetic() && !classA.equals(field.getType().getDeclaringClass()))
-				.map(this::toMappedField)
-				.filter(field -> !aMappings.contains(field))
-				.collect(Collectors.toList());
-		aUnmapped.addAll(FieldUtils.getAllFieldsList(classA).stream()
-				.filter(field -> !field.isSynthetic() && !field.isEnumConstant() && classA.equals(field.getType().getDeclaringClass()))
-				.map(this::toMappedField)
-				.flatMap(nestedField -> FieldUtils.getAllFieldsList(nestedField.getType()).stream()
-						.filter(field -> !field.isSynthetic())
-						.map(field -> toMappedField(field).setParent(nestedField)))
-				.collect(Collectors.toList()));
-		List<MappedField> bUnmapped = FieldUtils.getAllFieldsList(classB).stream()
-				.filter(field -> !field.isSynthetic() && !classB.equals(field.getType().getDeclaringClass()))
-				.map(this::toMappedField)
-				.filter(field -> !bMappings.contains(field))
-				.collect(Collectors.toList());
-		bUnmapped.addAll(FieldUtils.getAllFieldsList(classB).stream()
-				.filter(field -> !field.isSynthetic() && !field.isEnumConstant() && classB.equals(field.getType().getDeclaringClass()))
-				.map(this::toMappedField)
-				.flatMap(nestedField -> FieldUtils.getAllFieldsList(nestedField.getType()).stream()
-						.filter(field -> !field.isSynthetic())
-						.map(field -> toMappedField(field).setParent(nestedField)))
-				.collect(Collectors.toList()));
-		aUnmapped.forEach(a -> bUnmapped.stream()
-				.collect(Collectors.toMap(b -> getSimilarity(a, b), Function.identity(), biIdentity()))
-				.entrySet().stream().sorted(Map.Entry.comparingByKey(Collections.reverseOrder()))
-				.findFirst()
-				.ifPresent(bEntry -> {
-					if (bEntry.getKey() * 2 > 1) {
-						MappedField b = bEntry.getValue();
-						if (areTypesCompatible(a.getType(), b.getType())) {
-							classMapBuilder.field(getFinalName(a), getFinalName(b));
-							if (a.getGenericType() != null && b.getGenericType() != null) {
-								setMapping(a.getGenericType(), b.getGenericType());
-							}
-						} else {
-							setMapping(a.getType(), b.getType());
-						}
-						bUnmapped.remove(b);
-					}
-				}));
-		classMapBuilder.register();
-	}
-
 	/**
 	 * {@inheritDoc}
 	 */
@@ -120,54 +64,77 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		factoryBuilder.mapNulls(false);
 	}
 
-	/**
-	 * Scans the application context and registers all Mappers and Converters found in it.
-	 */
-	@SuppressWarnings("rawtypes")
 	private void addAllSpringBeans(final ApplicationContext applicationContext) {
 		applicationContext.getBeansOfType(Mapper.class).values().forEach(this::addMapper);
 		applicationContext.getBeansOfType(Converter.class).values().forEach(this::addConverter);
 	}
 
-	/**
-	 * Constructs and registers a {@link ma.glasnost.orika.metadata.ClassMapBuilder} into the {@link MapperFactory} using a {@link Mapper}.
-	 */
-	@SuppressWarnings("rawtypes")
-	private void addMapper(Mapper<?, ?> mapper) {
-		factory.classMap(mapper.getAType(), mapper.getBType())
-				.byDefault()
-				.customize((Mapper) mapper)
-				.register();
+	private <T, S> void addMapper(Mapper<T, S> mapper) {
+		factory.classMap(mapper.getAType(), mapper.getBType()).byDefault().customize(mapper).register();
 	}
 
-	/**
-	 * Registers a {@link Converter} into the {@link ma.glasnost.orika.converter.ConverterFactory}.
-	 */
-	private void addConverter(Converter<?, ?> converter) {
+	private <T, S> void addConverter(Converter<T, S> converter) {
 		factory.getConverterFactory().registerConverter(converter);
 	}
 
-	private Double getSimilarity(MappedField pA, MappedField pB) {
-		return stringComparator.similarity(pA.getName(), pB.getName());
+	private void setMapping(Class<?> classA, Class<?> classB) {
+		ClassMapBuilder<?, ?> classMapBuilder = factory.classMap(classA, classB);
+		Table<MappedField, MappedField, Double> table = ArrayTable.create(getAllFields(classA), getAllFields(classB));
+		table.cellSet().forEach(cell -> table.put(cell.getRowKey(), cell.getColumnKey(), getSimilarity(cell.getRowKey(), cell.getColumnKey())));
+		table.rowMap().forEach((a, rowSet) -> {
+			MappedField b = rowSet.entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get().getKey();
+			if (table.column(b).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get().getKey().equals(a)) {
+				if (areTypesCompatible(a.getType(), b.getType())) {
+					classMapBuilder.field(getFinalName(a), getFinalName(b));
+					if (Objects.nonNull(a.getGenericType()) && Objects.nonNull(b.getGenericType())) {
+						setMapping(a.getGenericType(), b.getGenericType());
+					}
+				} else if (a.getNested() || b.getNested()) {
+					classMapBuilder.field(getFinalName(a), getFinalName(b));
+					setMapping(a.getType(), b.getType());
+				}
+			}
+		});
+		classMapBuilder.register();
 	}
 
-	public String getFinalName(MappedField field) {
+	private Double getSimilarity(MappedField a, MappedField b) {
+		return Stream.of(comparator.similarity(a.getName(), b.getName()), comparator.similarity(getFinalName(a), getFinalName(b)),
+				comparator.similarity(a.getName(), getFinalName(b)), comparator.similarity(getFinalName(a), b.getName()))
+				.max(Comparator.comparingDouble(Double::doubleValue)).get();
+	}
+
+	private List<MappedField> getAllFields(Class<?> clazz) {
+		List<MappedField> fields = FieldUtils.getAllFieldsList(clazz).stream()
+				.filter(field -> !field.isSynthetic())
+				.map(this::toMappedField)
+				.collect(Collectors.toList());
+		fields.addAll(FieldUtils.getAllFieldsList(clazz).stream()
+				.filter(field -> !field.isSynthetic() && !field.getType().isEnum() && clazz.equals(field.getType().getDeclaringClass()))
+				.map(this::toMappedField)
+				.flatMap(nestedField -> FieldUtils.getAllFieldsList(nestedField.getType()).stream()
+						.filter(field -> !field.isSynthetic() && !clazz.equals(field.getType()))
+						.map(field -> toMappedField(field).setParent(nestedField)))
+				.collect(Collectors.toList()));
+		return fields;
+	}
+
+	private String getFinalName(MappedField field) {
 		return (Objects.isNull(field.getParent()) ? "" : field.getParent().getName() + ".") + field.getName();
 	}
 
 	private MappedField toMappedField(Field field) {
-		return new MappedField().setName(field.getName()).setType(field.getType())
-				.setGenericType(field.getGenericType() instanceof ParameterizedType ? ((Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]) : null);
-	}
-
-	private MappedField toMappedField(Type type, String expression) {
-		return new MappedField().setName(expression)
-				.setType(type.getRawType())
-				.setGenericType(type.getComponentType() != null ? type.getComponentType().getRawType() : null);
+		return new MappedField()
+				.setName(field.getName())
+				.setType(field.getType())
+				.setNested(field.getDeclaringClass().equals(field.getType().getDeclaringClass()))
+				.setGenericType(field.getGenericType() instanceof ParameterizedType ?
+						((Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]) : null);
 	}
 
 	private boolean areTypesCompatible(Class<?> classA, Class<?> classB) {
-		return classA.equals(classB) || Arrays.stream(classA.getInterfaces()).filter(Arrays.asList(classB.getInterfaces())::contains).count() > 0;
+		return classA.equals(classB) || (classA.isEnum() && classB.isEnum()) ||
+			   Arrays.stream(classA.getInterfaces()).filter(Arrays.asList(classB.getInterfaces())::contains).count() > 0;
 	}
 
 	private static <T> BinaryOperator<T> biIdentity() {
