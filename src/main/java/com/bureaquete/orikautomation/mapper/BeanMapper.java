@@ -6,6 +6,7 @@ import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Table;
 import info.debatty.java.stringsimilarity.NormalizedLevenshtein;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -83,7 +84,8 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		table.cellSet().forEach(cell -> table.put(cell.getRowKey(), cell.getColumnKey(), getSimilarity(cell.getRowKey(), cell.getColumnKey())));
 		table.rowMap().forEach((a, rowSet) -> {
 			MappedField b = rowSet.entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get().getKey();
-			if (table.column(b).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get().getKey().equals(a)) {
+			Map.Entry<MappedField, Double> maxA = table.column(b).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get();
+			if (maxA.getKey().equals(a) && maxA.getValue() * 2 > 1) {
 				if (areTypesCompatible(a.getType(), b.getType())) {
 					classMapBuilder.field(getFinalName(a), getFinalName(b));
 					if (Objects.nonNull(a.getGenericType()) && Objects.nonNull(b.getGenericType())) {
@@ -106,11 +108,12 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 
 	private List<MappedField> getAllFields(Class<?> clazz) {
 		List<MappedField> fields = FieldUtils.getAllFieldsList(clazz).stream()
-				.filter(field -> !field.isSynthetic())
+				.filter(field -> !field.isSynthetic() && !Modifier.isFinal(field.getModifiers()))
 				.map(this::toMappedField)
 				.collect(Collectors.toList());
 		fields.addAll(FieldUtils.getAllFieldsList(clazz).stream()
-				.filter(field -> !field.isSynthetic() && !field.getType().isEnum() && clazz.equals(field.getType().getDeclaringClass()))
+				.filter(field -> !field.isSynthetic() && !Modifier.isFinal(field.getModifiers()) &&
+								 !field.getType().isEnum() && clazz.equals(field.getType().getDeclaringClass()))
 				.map(this::toMappedField)
 				.flatMap(nestedField -> FieldUtils.getAllFieldsList(nestedField.getType()).stream()
 						.filter(field -> !field.isSynthetic() && !clazz.equals(field.getType()))
