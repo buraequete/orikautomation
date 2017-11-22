@@ -3,11 +3,13 @@ package com.bureaquete.orikautomation.mapper;
 import com.bureaquete.orikautomation.annotation.Mapped;
 import com.bureaquete.orikautomation.bean.MappedField;
 import com.google.common.collect.ArrayTable;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 import info.debatty.java.stringsimilarity.NormalizedLevenshtein;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -26,6 +28,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import sun.reflect.generics.reflectiveObjects.TypeVariableImpl;
 
 public class BeanMapper extends ConfigurableMapper implements ApplicationContextAware {
 
@@ -113,7 +116,7 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 				.collect(Collectors.toList());
 		fields.addAll(FieldUtils.getAllFieldsList(clazz).stream()
 				.filter(field -> !field.isSynthetic() && !Modifier.isFinal(field.getModifiers()) &&
-								 !field.getType().isEnum() && clazz.equals(field.getType().getDeclaringClass()))
+								 !field.getType().isEnum() && getAllAncestors(clazz).contains(field.getType().getDeclaringClass()))
 				.map(this::toMappedField)
 				.flatMap(nestedField -> FieldUtils.getAllFieldsList(nestedField.getType()).stream()
 						.filter(field -> !field.isSynthetic() && !clazz.equals(field.getType()))
@@ -126,13 +129,32 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		return (Objects.isNull(field.getParent()) ? "" : field.getParent().getName() + ".") + field.getName();
 	}
 
+	private List<Class<?>> getAllAncestors(Class<?> clazz) {
+		List<Class<?>> result = Lists.newArrayList();
+		Class<?> temp = clazz;
+		while (!temp.equals(Object.class)) {
+			result.add(temp);
+			temp = temp.getSuperclass();
+		}
+		return result;
+	}
+
 	private MappedField toMappedField(Field field) {
 		return new MappedField()
 				.setName(field.getName())
 				.setType(field.getType())
 				.setNested(field.getDeclaringClass().equals(field.getType().getDeclaringClass()))
-				.setGenericType(field.getGenericType() instanceof ParameterizedType ?
-						((Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]) : null);
+				.setGenericType(extractGenericType(field));
+	}
+
+	private Class<?> extractGenericType(Field field) {
+		if (field.getGenericType() instanceof ParameterizedType) {
+			Type genericType = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+			if (!(genericType instanceof TypeVariableImpl)) {
+				return (Class<?>) genericType;
+			}
+		}
+		return null;
 	}
 
 	private boolean areTypesCompatible(Class<?> classA, Class<?> classB) {
