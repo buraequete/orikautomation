@@ -44,6 +44,10 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		this.applicationContext = applicationContext;
 	}
 
+	public MapperFactory getMapperFactory() {
+		return this.factory;
+	}
+
 	public void init() {
 		super.init();
 	}
