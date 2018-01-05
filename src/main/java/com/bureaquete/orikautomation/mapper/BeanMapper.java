@@ -22,7 +22,6 @@ import ma.glasnost.orika.Converter;
 import ma.glasnost.orika.Mapper;
 import ma.glasnost.orika.MapperFactory;
 import ma.glasnost.orika.impl.ConfigurableMapper;
-import ma.glasnost.orika.impl.DefaultMapperFactory;
 import ma.glasnost.orika.metadata.ClassMapBuilder;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.beans.BeansException;
@@ -44,10 +43,6 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		this.applicationContext = applicationContext;
 	}
 
-	public MapperFactory getMapperFactory() {
-		return this.factory;
-	}
-
 	public void init() {
 		super.init();
 	}
@@ -62,14 +57,6 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		applicationContext.getBeansWithAnnotation(Mapped.class).values().stream()
 				.map(bean -> bean.getClass().getSuperclass().getAnnotationsByType(Mapped.class)[0])
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	protected void configureFactoryBuilder(final DefaultMapperFactory.Builder factoryBuilder) {
-		factoryBuilder.mapNulls(false);
 	}
 
 	private void addAllSpringBeans(final ApplicationContext applicationContext) {
