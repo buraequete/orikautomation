@@ -1,6 +1,6 @@
 package com.bureaquete.orikautomation.config;
 
-import com.bureaquete.orikautomation.mapper.BeanMapper;
+import com.bureaquete.orikautomation.mapper.AutoBeanMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -8,8 +8,8 @@ import org.springframework.context.annotation.Configuration;
 public class MapperConfiguration {
 
 	@Bean
-	public BeanMapper beanMapper() {
-		return new BeanMapper();
+	public AutoBeanMapper beanMapper() {
+		return new AutoBeanMapper();
 	}
 
 	@Bean

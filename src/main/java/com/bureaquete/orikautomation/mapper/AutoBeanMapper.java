@@ -29,14 +29,20 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import sun.reflect.generics.reflectiveObjects.TypeVariableImpl;
 
-public class BeanMapper extends ConfigurableMapper implements ApplicationContextAware {
+public class AutoBeanMapper extends ConfigurableMapper implements ApplicationContextAware {
 
 	private MapperFactory factory;
 	private ApplicationContext applicationContext;
 	private NormalizedLevenshtein comparator = new NormalizedLevenshtein();
+	private boolean customMappersEnabled = false;
 
-	public BeanMapper() {
+	public AutoBeanMapper() {
 		super(false);
+	}
+
+	public AutoBeanMapper(boolean customMappersEnabled) {
+		super(false);
+		this.customMappersEnabled = customMappersEnabled;
 	}
 
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -53,7 +59,9 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 	@Override
 	protected void configure(MapperFactory factory) {
 		this.factory = factory;
-		addAllSpringBeans(applicationContext);
+		if (customMappersEnabled) {
+			addAllSpringBeans(applicationContext);
+		}
 		applicationContext.getBeansWithAnnotation(Mapped.class).values().stream()
 				.map(bean -> bean.getClass().getSuperclass().getAnnotationsByType(Mapped.class)[0])
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
