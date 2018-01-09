@@ -15,11 +15,15 @@ public class SimpleBeanMapper extends ConfigurableMapper implements ApplicationC
 	private ApplicationContext applicationContext;
 
 	public SimpleBeanMapper() {
-		super();
+		super(false);
 	}
 
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.applicationContext = applicationContext;
+	}
+
+	public void init() {
+		super.init();
 	}
 
 	/**
