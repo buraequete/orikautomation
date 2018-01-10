@@ -110,33 +110,24 @@ public class AutoBeanMapper extends ConfigurableMapper implements ApplicationCon
 	}
 
 	private List<MappedField> getAllFields(Class<?> clazz) {
-		List<MappedField> fields = FieldUtils.getAllFieldsList(clazz).stream()
+		List<Field> mainFieldList = FieldUtils.getAllFieldsList(clazz).stream()
 				.filter(field -> !field.isSynthetic() && !Modifier.isFinal(field.getModifiers()))
-				.map(this::toMappedField)
 				.collect(Collectors.toList());
-		fields.addAll(FieldUtils.getAllFieldsList(clazz).stream()
-				.filter(field -> !field.isSynthetic() && !Modifier.isFinal(field.getModifiers()) &&
-								 !field.getType().isEnum() && getAllAncestors(clazz).contains(field.getType().getDeclaringClass()))
+		List<MappedField> fields = mainFieldList.stream().map(this::toMappedField).collect(Collectors.toList());
+		List<MappedField> flattenedFields = mainFieldList.stream()
+				.filter(field -> !field.getType().isEnum())
 				.map(this::toMappedField)
+				.filter(MappedField::getNested)
 				.flatMap(nestedField -> FieldUtils.getAllFieldsList(nestedField.getType()).stream()
-						.filter(field -> !field.isSynthetic() && !clazz.equals(field.getType()))
+						.filter(field -> !field.isSynthetic() && !Modifier.isFinal(field.getModifiers()) && !clazz.equals(field.getType()))
 						.map(field -> toMappedField(field).setParent(nestedField)))
-				.collect(Collectors.toList()));
+				.collect(Collectors.toList());
+		fields.addAll(flattenedFields);
 		return fields;
 	}
 
 	private String getFinalName(MappedField field) {
 		return (Objects.isNull(field.getParent()) ? "" : field.getParent().getName() + ".") + field.getName();
-	}
-
-	private List<Class<?>> getAllAncestors(Class<?> clazz) {
-		List<Class<?>> result = Lists.newArrayList();
-		Class<?> temp = clazz;
-		while (!temp.equals(Object.class)) {
-			result.add(temp);
-			temp = temp.getSuperclass();
-		}
-		return result;
 	}
 
 	private MappedField toMappedField(Field field) {
@@ -149,7 +140,17 @@ public class AutoBeanMapper extends ConfigurableMapper implements ApplicationCon
 
 	private boolean isNested(Field field) {
 		return Stream.of(field.getAnnotationsByType(Valid.class)).count() > 0
-			   || field.getDeclaringClass().equals(field.getType().getDeclaringClass());
+			   || getAllAncestors(field.getDeclaringClass()).contains(field.getType().getDeclaringClass());
+	}
+
+	private List<Class<?>> getAllAncestors(Class<?> clazz) {
+		List<Class<?>> result = Lists.newArrayList();
+		Class<?> temp = clazz;
+		while (!temp.equals(Object.class)) {
+			result.add(temp);
+			temp = temp.getSuperclass();
+		}
+		return result;
 	}
 
 	private Class<?> extractGenericType(Field field) {
