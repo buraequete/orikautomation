@@ -98,7 +98,7 @@ public class AutoBeanMapper extends ConfigurableMapper implements ApplicationCon
 					if (Objects.nonNull(a.getGenericType()) && Objects.nonNull(b.getGenericType())) {
 						setMapping(a.getGenericType(), b.getGenericType());
 					}
-				} else if (a.getNested() || b.getNested()) {
+				} else if (a.getNested() && b.getNested()) {
 					classMapBuilder.field(getFinalName(a), getFinalName(b));
 					setMapping(a.getType(), b.getType());
 				}
