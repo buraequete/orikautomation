@@ -15,9 +15,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.validation.Valid;
 import ma.glasnost.orika.Converter;
 import ma.glasnost.orika.Mapper;
 import ma.glasnost.orika.MapperFactory;
@@ -63,7 +63,7 @@ public class AutoBeanMapper extends ConfigurableMapper implements ApplicationCon
 			addAllSpringBeans(applicationContext);
 		}
 		applicationContext.getBeansWithAnnotation(Mapped.class).values().stream()
-				.map(bean -> bean.getClass().getSuperclass().getAnnotationsByType(Mapped.class)[0])
+				.flatMap(bean -> Stream.of(bean.getClass().getSuperclass().getAnnotationsByType(Mapped.class)))
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 	}
 
@@ -83,7 +83,8 @@ public class AutoBeanMapper extends ConfigurableMapper implements ApplicationCon
 	private void setMapping(Class<?> classA, Class<?> classB) {
 		ClassMapBuilder<?, ?> classMapBuilder = factory.classMap(classA, classB);
 		Table<MappedField, MappedField, Double> table = ArrayTable.create(getAllFields(classA), getAllFields(classB));
-		table.cellSet().forEach(cell -> table.put(cell.getRowKey(), cell.getColumnKey(), getSimilarity(cell.getRowKey(), cell.getColumnKey())));
+		table.cellSet().forEach(cell -> table.put(Objects.requireNonNull(cell.getRowKey()),
+				Objects.requireNonNull(cell.getColumnKey()), getSimilarity(cell.getRowKey(), cell.getColumnKey())));
 		table.rowMap().forEach((a, rowSet) -> {
 			MappedField b = rowSet.entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get().getKey();
 			Map.Entry<MappedField, Double> maxA = table.column(b).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get();
@@ -142,8 +143,13 @@ public class AutoBeanMapper extends ConfigurableMapper implements ApplicationCon
 		return new MappedField()
 				.setName(field.getName())
 				.setType(field.getType())
-				.setNested(field.getDeclaringClass().equals(field.getType().getDeclaringClass()))
+				.setNested(isNested(field))
 				.setGenericType(extractGenericType(field));
+	}
+
+	private boolean isNested(Field field) {
+		return Stream.of(field.getAnnotationsByType(Valid.class)).count() > 0
+			   || field.getDeclaringClass().equals(field.getType().getDeclaringClass());
 	}
 
 	private Class<?> extractGenericType(Field field) {
@@ -158,10 +164,6 @@ public class AutoBeanMapper extends ConfigurableMapper implements ApplicationCon
 
 	private boolean areTypesCompatible(Class<?> classA, Class<?> classB) {
 		return classA.equals(classB) || (classA.isEnum() && classB.isEnum()) ||
-			   Arrays.stream(classA.getInterfaces()).filter(Arrays.asList(classB.getInterfaces())::contains).count() > 0;
-	}
-
-	private static <T> BinaryOperator<T> biIdentity() {
-		return (t, s) -> t;
+			   Arrays.stream(classA.getInterfaces()).anyMatch(Arrays.asList(classB.getInterfaces())::contains);
 	}
 }
