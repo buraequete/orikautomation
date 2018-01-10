@@ -1,6 +1,7 @@
 package com.bureaquete.orikautomation.mapper;
 
 import com.bureaquete.orikautomation.annotation.Mapped;
+import com.bureaquete.orikautomation.annotation.MultiMapped;
 import com.bureaquete.orikautomation.bean.MappedField;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Lists;
@@ -62,8 +63,11 @@ public class AutoBeanMapper extends ConfigurableMapper implements ApplicationCon
 		if (customMappersEnabled) {
 			addAllSpringBeans(applicationContext);
 		}
+		applicationContext.getBeansWithAnnotation(MultiMapped.class).values().stream()
+				.flatMap(bean -> Stream.of(bean.getClass().getSuperclass().getAnnotationsByType(MultiMapped.class)[0].value()))
+				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 		applicationContext.getBeansWithAnnotation(Mapped.class).values().stream()
-				.flatMap(bean -> Stream.of(bean.getClass().getSuperclass().getAnnotationsByType(Mapped.class)))
+				.map(bean -> bean.getClass().getSuperclass().getAnnotationsByType(Mapped.class)[0])
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 	}
 
