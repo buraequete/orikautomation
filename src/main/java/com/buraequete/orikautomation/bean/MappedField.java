@@ -1,4 +1,4 @@
-package com.bureaquete.orikautomation.bean;
+package com.buraequete.orikautomation.bean;
 
 import lombok.Data;
 import lombok.experimental.Accessors;
