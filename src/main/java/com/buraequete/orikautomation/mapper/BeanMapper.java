@@ -79,6 +79,9 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 	}
 
 	private void setMapping(Class<?> classA, Class<?> classB) {
+		if (isCustomized(classA, classB)) {
+			return;
+		}
 		ClassMapBuilder<?, ?> classMapBuilder = factory.classMap(classA, classB);
 		Table<MappedField, MappedField, Double> table = ArrayTable.create(getAllFields(classA), getAllFields(classB));
 		table.cellSet().forEach(cell -> table.put(Objects.requireNonNull(cell.getRowKey()),
