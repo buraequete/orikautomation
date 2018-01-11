@@ -11,5 +11,6 @@ public class MappedField {
 	Class<?> genericType;
 	MappedField parent;
 	Boolean nested;
+	String reference;
 	String name;
 }

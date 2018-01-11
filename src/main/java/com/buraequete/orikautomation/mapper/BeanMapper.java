@@ -2,6 +2,7 @@ package com.buraequete.orikautomation.mapper;
 
 import com.buraequete.orikautomation.annotation.Mapped;
 import com.buraequete.orikautomation.annotation.MultiMapped;
+import com.buraequete.orikautomation.annotation.Reference;
 import com.buraequete.orikautomation.bean.MappedField;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Lists;
@@ -108,6 +109,9 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 	}
 
 	private Double getSimilarity(MappedField a, MappedField b) {
+		if (isReferred(a, b)) {
+			return 1D;
+		}
 		String nameA = a.getName();
 		String nameB = b.getName();
 		Double offset = isFragmentMatching(nameA, nameB) || isFragmentMatching(nameB, nameA) ? 1D / 2D : 0D;
@@ -118,6 +122,10 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 				comparator.similarity(nameA, getFinalName(b)),
 				comparator.similarity(getFinalName(a), nameB))
 					   .max(Comparator.comparingDouble(Double::doubleValue)).get() + offset;
+	}
+
+	private boolean isReferred(MappedField a, MappedField b) {
+		return a.getReference().equals(b.getName()) || b.getReference().equals(a.getName());
 	}
 
 	private boolean isFragmentMatching(String a, String b) {
@@ -150,7 +158,8 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 				.setName(field.getName())
 				.setType(field.getType())
 				.setNested(isNested(field))
-				.setGenericType(extractGenericType(field));
+				.setGenericType(extractGenericType(field))
+				.setReference(Stream.of(field.getAnnotationsByType(Reference.class)).map(Reference::value).findFirst().orElse(""));
 	}
 
 	private boolean isNested(Field field) {
