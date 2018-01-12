@@ -28,6 +28,7 @@ import ma.glasnost.orika.impl.ConfigurableMapper;
 import ma.glasnost.orika.metadata.ClassMapBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -62,10 +63,12 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		this.factory = factory;
 		addAllSpringBeans(applicationContext);
 		applicationContext.getBeansWithAnnotation(MultiMapped.class).values().stream()
-				.flatMap(bean -> Stream.of(bean.getClass().getSuperclass().getAnnotationsByType(MultiMapped.class)[0].value()))
+				.map(AopUtils::getTargetClass)
+				.flatMap(bean -> Stream.of(bean.getClass().getAnnotationsByType(MultiMapped.class)[0].value()))
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 		applicationContext.getBeansWithAnnotation(Mapped.class).values().stream()
-				.map(bean -> bean.getClass().getSuperclass().getAnnotationsByType(Mapped.class)[0])
+				.map(AopUtils::getTargetClass)
+				.map(bean -> bean.getClass().getAnnotationsByType(Mapped.class)[0])
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 	}
 
