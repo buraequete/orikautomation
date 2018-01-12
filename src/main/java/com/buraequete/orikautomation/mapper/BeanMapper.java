@@ -64,11 +64,11 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		addAllSpringBeans(applicationContext);
 		applicationContext.getBeansWithAnnotation(MultiMapped.class).values().stream()
 				.map(this::unproxy)
-				.flatMap(bean -> Stream.of(bean.getClass().getAnnotationsByType(MultiMapped.class)[0].value()))
+				.flatMap(clazz -> Stream.of(clazz.getAnnotationsByType(MultiMapped.class)[0].value()))
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 		applicationContext.getBeansWithAnnotation(Mapped.class).values().stream()
 				.map(this::unproxy)
-				.map(bean -> bean.getClass().getAnnotationsByType(Mapped.class)[0])
+				.map(clazz -> clazz.getAnnotationsByType(Mapped.class)[0])
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 	}
 
