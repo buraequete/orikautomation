@@ -63,13 +63,17 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		this.factory = factory;
 		addAllSpringBeans(applicationContext);
 		applicationContext.getBeansWithAnnotation(MultiMapped.class).values().stream()
-				.map(AopUtils::getTargetClass)
+				.map(this::unproxy)
 				.flatMap(bean -> Stream.of(bean.getClass().getAnnotationsByType(MultiMapped.class)[0].value()))
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
 		applicationContext.getBeansWithAnnotation(Mapped.class).values().stream()
-				.map(AopUtils::getTargetClass)
+				.map(this::unproxy)
 				.map(bean -> bean.getClass().getAnnotationsByType(Mapped.class)[0])
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
+	}
+
+	private <T> Class<T> unproxy(T obj) {
+		return (Class<T>) (AopUtils.isAopProxy(obj) || AopUtils.isCglibProxy(obj) ? AopUtils.getTargetClass(obj) : obj.getClass());
 	}
 
 	private void addAllSpringBeans(final ApplicationContext applicationContext) {
