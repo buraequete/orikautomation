@@ -98,7 +98,8 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		table.rowMap().forEach((a, rowSet) -> {
 			MappedField b = rowSet.entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get().getKey();
 			Map.Entry<MappedField, Double> maxA = table.column(b).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get();
-			if (maxA.getKey().equals(a) && maxA.getValue() > threshold) {
+			Map.Entry<MappedField, Double> maxA2 = table.row(maxA.getKey()).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get();
+			if (maxA.getKey().equals(a) && maxA2.getKey().equals(b) && maxA.getValue() > threshold) {
 				if (areTypesCompatible(a.getType(), b.getType())) {
 					classMapBuilder.field(getFinalName(a), getFinalName(b));
 					if (Objects.nonNull(a.getGenericType()) && Objects.nonNull(b.getGenericType())) {
