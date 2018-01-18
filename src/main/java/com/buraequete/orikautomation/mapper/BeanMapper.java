@@ -98,8 +98,7 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		table.rowMap().forEach((a, rowSet) -> {
 			MappedField b = rowSet.entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get().getKey();
 			Map.Entry<MappedField, Double> maxA = table.column(b).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get();
-			Map.Entry<MappedField, Double> maxA2 = table.row(maxA.getKey()).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get();
-			if (maxA.getKey().equals(a) && maxA2.getKey().equals(b) && maxA.getValue() > threshold) {
+			if (maxA.getKey().equals(a) && maxA.getValue() > threshold) {
 				if (areTypesCompatible(a.getType(), b.getType())) {
 					classMapBuilder.field(getFinalName(a), getFinalName(b));
 					if (Objects.nonNull(a.getGenericType()) && Objects.nonNull(b.getGenericType())) {
@@ -122,14 +121,14 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		}
 		String nameA = a.getName();
 		String nameB = b.getName();
-		Double offset = isFragmentMatching(nameA, nameB) || isFragmentMatching(nameB, nameA) ? 1D / 2D : 0D;
+		Double multiplier = isFragmentMatching(nameA, nameB) || isFragmentMatching(nameB, nameA) ? 3D / 2D : 1D;
 		return Stream.of(comparator.similarity(nameA, nameB),
 				comparator.similarity(StringUtils.capitalize(nameA), nameB),
 				comparator.similarity(nameA, StringUtils.capitalize(nameB)),
 				comparator.similarity(getFinalName(a), getFinalName(b)),
 				comparator.similarity(nameA, getFinalName(b)),
 				comparator.similarity(getFinalName(a), nameB))
-					   .max(Comparator.comparingDouble(Double::doubleValue)).get() + offset;
+					   .max(Comparator.comparingDouble(Double::doubleValue)).get() * multiplier;
 	}
 
 	private boolean isReferred(MappedField a, MappedField b) {
