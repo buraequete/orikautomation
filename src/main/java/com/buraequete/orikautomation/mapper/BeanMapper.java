@@ -40,6 +40,8 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 	private ApplicationContext applicationContext;
 	private NormalizedLevenshtein comparator = new NormalizedLevenshtein();
 	private static final Double threshold = 2D / 3D;
+	private static final Double fragmentedMatch = 3D / 2D;
+	private static final Double certainMatch = 10D;
 
 	private Map<Class, Class> customMapperMap = Maps.newHashMap();
 
@@ -117,11 +119,12 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 
 	private Double getSimilarity(MappedField a, MappedField b) {
 		if (isReferred(a, b)) {
-			return 1D;
+			return certainMatch;
 		}
 		String nameA = a.getName();
 		String nameB = b.getName();
-		Double multiplier = isFragmentMatching(nameA, nameB) || isFragmentMatching(nameB, nameA) ? 3D / 2D : 1D;
+		Double multiplier = nameA.equalsIgnoreCase(nameB) ? certainMatch :
+				isFragmentMatching(nameA, nameB) || isFragmentMatching(nameB, nameA) ? fragmentedMatch : 1D;
 		return Stream.of(comparator.similarity(nameA, nameB),
 				comparator.similarity(StringUtils.capitalize(nameA), nameB),
 				comparator.similarity(nameA, StringUtils.capitalize(nameB)),
