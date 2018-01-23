@@ -14,7 +14,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -100,8 +99,13 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 		if (isCustomized(classA, classB)) {
 			return;
 		}
+		Table<MappedField, MappedField, Double> table;
+		try {
+			table = ArrayTable.create(getAllFields(classA), getAllFields(classB));
+		} catch (Exception exception) {
+			return;
+		}
 		ClassMapBuilder<?, ?> classMapBuilder = factory.classMap(classA, classB);
-		Table<MappedField, MappedField, Double> table = ArrayTable.create(getAllFields(classA), getAllFields(classB));
 		table.cellSet().forEach(cell -> table.put(Objects.requireNonNull(cell.getRowKey()),
 				Objects.requireNonNull(cell.getColumnKey()),
 				getSimilarity(cell.getRowKey(), cell.getColumnKey())));
@@ -109,14 +113,15 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 			MappedField b = rowSet.entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get().getKey();
 			Map.Entry<MappedField, Double> maxA = table.column(b).entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue)).get();
 			if (maxA.getKey().equals(a) && maxA.getValue() > threshold) {
-				if (areTypesCompatible(a.getType(), b.getType())) {
+				if (areTypesCompatible(a.getType(), b.getType()) && !isNested(a, b)) {
 					classMapBuilder.field(getFinalName(a), getFinalName(b));
-					if (Objects.nonNull(a.getGenericType()) && Objects.nonNull(b.getGenericType())) {
+				} else if (isNested(a, b)) {
+					classMapBuilder.field(getFinalName(a), getFinalName(b));
+					if (isGenericCompatible(a, b)) {
 						setMapping(a.getGenericType(), b.getGenericType());
+					} else {
+						setMapping(a.getType(), b.getType());
 					}
-				} else if (a.getNested() && b.getNested() && areNestedTypesCompatible(a.getType(), b.getType())) {
-					classMapBuilder.field(getFinalName(a), getFinalName(b));
-					setMapping(a.getType(), b.getType());
 				}
 			} else if (isCustomized(a.getType(), b.getType()) || isCustomized(a.getGenericType(), b.getGenericType())) {
 				classMapBuilder.field(getFinalName(a), getFinalName(b));
@@ -210,11 +215,16 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 			   || Arrays.stream(classA.getInterfaces()).anyMatch(Arrays.asList(classB.getInterfaces())::contains);
 	}
 
-	private boolean areNestedTypesCompatible(Class<?> classA, Class<?> classB) {
-		return Collection.class.isAssignableFrom(classA) == Collection.class.isAssignableFrom(classB);
-	}
-
 	private boolean isCustomized(Class<?> classA, Class<?> classB) {
 		return Objects.nonNull(classA) && Objects.nonNull(classB) && classB.equals(customMapperMap.get(classA));
+	}
+
+	private boolean isGenericCompatible(MappedField a, MappedField b) {
+		return Objects.nonNull(a.getGenericType()) && Objects.nonNull(b.getGenericType())
+			   && !a.getGenericType().isEnum() && !b.getGenericType().isEnum();
+	}
+
+	private boolean isNested(MappedField a, MappedField b) {
+		return a.getNested() || b.getNested();
 	}
 }
