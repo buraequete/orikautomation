@@ -91,6 +91,8 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 	}
 
 	private <T, S> void addConverter(Converter<T, S> converter) {
+		customMapperMap.put(converter.getAType().getRawType(), converter.getBType().getRawType());
+		customMapperMap.put(converter.getBType().getRawType(), converter.getAType().getRawType());
 		factory.getConverterFactory().registerConverter(converter);
 	}
 
