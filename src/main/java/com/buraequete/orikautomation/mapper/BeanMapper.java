@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.Valid;
+import ma.glasnost.orika.Converter;
 import ma.glasnost.orika.Mapper;
 import ma.glasnost.orika.MapperFactory;
 import ma.glasnost.orika.impl.ConfigurableMapper;
@@ -80,12 +81,17 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 
 	private void addAllSpringBeans(final ApplicationContext applicationContext) {
 		applicationContext.getBeansOfType(Mapper.class).values().forEach(this::addMapper);
+		applicationContext.getBeansOfType(Converter.class).values().forEach(this::addConverter);
 	}
 
 	private <T, S> void addMapper(Mapper<T, S> mapper) {
 		customMapperMap.put(mapper.getAType().getRawType(), mapper.getBType().getRawType());
 		customMapperMap.put(mapper.getBType().getRawType(), mapper.getAType().getRawType());
 		factory.classMap(mapper.getAType(), mapper.getBType()).byDefault().customize(mapper).register();
+	}
+
+	private <T, S> void addConverter(Converter<T, S> converter) {
+		factory.getConverterFactory().registerConverter(converter);
 	}
 
 	private void setMapping(Class<?> classA, Class<?> classB) {
