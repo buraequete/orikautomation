@@ -4,6 +4,7 @@ import com.buraequete.orikautomation.annotation.Mapped;
 import com.buraequete.orikautomation.annotation.MultiMapped;
 import com.buraequete.orikautomation.annotation.Reference;
 import com.buraequete.orikautomation.bean.MappedField;
+import com.buraequete.orikautomation.events.MappingEventPublisher;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -38,6 +39,7 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 
 	private MapperFactory factory;
 	private ApplicationContext applicationContext;
+	private MappingEventPublisher eventPublisher;
 	private NormalizedLevenshtein comparator = new NormalizedLevenshtein();
 	private static final Double threshold = 2D / 3D;
 	private static final Double fragmentedMatch = 3D / 2D;
@@ -47,6 +49,11 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 
 	public BeanMapper() {
 		super(false);
+	}
+
+	public BeanMapper(MappingEventPublisher eventPublisher) {
+		super(false);
+		this.eventPublisher = eventPublisher;
 	}
 
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -72,6 +79,20 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 				.map(this::unproxy)
 				.map(clazz -> clazz.getAnnotationsByType(Mapped.class)[0])
 				.forEach(annotation -> setMapping(annotation.value()[0], annotation.value()[1]));
+	}
+
+	@Override
+	public <S, D> D map(S sourceObject, Class<D> destinationClass) {
+		D result = super.map(sourceObject, destinationClass);
+		eventPublisher.publishMappingEndEvent();
+		return result;
+	}
+
+	@Override
+	public <S, D> List<D> mapAsList(S[] source, Class<D> destinationClass) {
+		List<D> result = super.mapAsList(source, destinationClass);
+		eventPublisher.publishMappingEndEvent();
+		return result;
 	}
 
 	private <T> Class<T> unproxy(T obj) {

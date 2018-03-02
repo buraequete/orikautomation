@@ -1,4 +1,4 @@
-package com.buraequete.orikautomation.config;
+package com.buraequete.orikautomation.events;
 
 import com.buraequete.orikautomation.mapper.BeanMapper;
 import org.springframework.beans.factory.annotation.Autowired;
