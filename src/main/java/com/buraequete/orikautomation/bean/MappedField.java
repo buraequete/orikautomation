@@ -1,5 +1,6 @@
 package com.buraequete.orikautomation.bean;
 
+import java.util.List;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -11,6 +12,6 @@ public class MappedField {
 	Class<?> genericType;
 	MappedField parent;
 	Boolean nested;
-	String reference;
+	List<String> reference;
 	String name;
 }

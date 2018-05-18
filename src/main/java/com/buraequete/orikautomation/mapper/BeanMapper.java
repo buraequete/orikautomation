@@ -177,7 +177,7 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 	}
 
 	private boolean isReferred(MappedField a, MappedField b) {
-		return a.getReference().equals(b.getName()) || b.getReference().equals(a.getName());
+		return a.getReference().contains(b.getName()) || b.getReference().contains(a.getName());
 	}
 
 	private boolean isFragmentMatching(String a, String b) {
@@ -211,7 +211,8 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 				.setType(field.getType())
 				.setNested(isNested(field))
 				.setGenericType(extractGenericType(field))
-				.setReference(Stream.of(field.getAnnotationsByType(Reference.class)).map(Reference::value).findFirst().orElse(""));
+				.setReference(Stream.of(field.getAnnotationsByType(Reference.class)).map(Reference::value)
+						.flatMap(Arrays::stream).collect(Collectors.toList()));
 	}
 
 	private boolean isNested(Field field) {
