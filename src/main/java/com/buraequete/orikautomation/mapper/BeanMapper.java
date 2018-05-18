@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -85,21 +86,21 @@ public class BeanMapper extends ConfigurableMapper implements ApplicationContext
 	@Override
 	public <S, D> D map(S sourceObject, Class<D> destinationClass) {
 		D result = super.map(sourceObject, destinationClass);
-		eventPublisher.publishMappingEndEvent();
+		Optional.ofNullable(eventPublisher).ifPresent(MappingEventPublisher::publishMappingEndEvent);
 		return result;
 	}
 
 	@Override
 	public <S, D> List<D> mapAsList(Iterable<S> source, Class<D> destinationClass) {
 		List<D> result = super.mapAsList(source, destinationClass);
-		eventPublisher.publishMappingEndEvent();
+		Optional.ofNullable(eventPublisher).ifPresent(MappingEventPublisher::publishMappingEndEvent);
 		return result;
 	}
 
 	@Override
 	public <S, D> Set<D> mapAsSet(Iterable<S> source, Class<D> destinationClass) {
 		Set<D> result = super.mapAsSet(source, destinationClass);
-		eventPublisher.publishMappingEndEvent();
+		Optional.ofNullable(eventPublisher).ifPresent(MappingEventPublisher::publishMappingEndEvent);
 		return result;
 	}
 
