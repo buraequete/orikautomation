@@ -1,16 +1,16 @@
 package com.buraequete.orikautomation.events;
 
 import com.buraequete.orikautomation.mapper.BeanMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ContextRefreshedEventListener implements ApplicationListener<ContextRefreshedEvent> {
 
-	@Autowired
-	private BeanMapper beanMapper;
+	private final BeanMapper beanMapper;
 
 	@Override
 	public void onApplicationEvent(ContextRefreshedEvent cse) {

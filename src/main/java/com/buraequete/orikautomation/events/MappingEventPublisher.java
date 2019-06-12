@@ -1,14 +1,14 @@
 package com.buraequete.orikautomation.events;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class MappingEventPublisher {
 
-	@Autowired
-	private ApplicationEventPublisher applicationEventPublisher;
+	private final ApplicationEventPublisher applicationEventPublisher;
 
 	public void publishMappingEndEvent() {
 		applicationEventPublisher.publishEvent(new MappingEndEvent(this));

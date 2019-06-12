@@ -3,7 +3,7 @@ package com.buraequete.orikautomation.mapper;
 import com.buraequete.orikautomation.annotation.Mapped;
 import com.buraequete.orikautomation.annotation.MultiMapped;
 import com.buraequete.orikautomation.annotation.Reference;
-import com.buraequete.orikautomation.bean.MappedField;
+import com.buraequete.orikautomation.dto.MappedField;
 import com.buraequete.orikautomation.events.MappingEventPublisher;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Lists;

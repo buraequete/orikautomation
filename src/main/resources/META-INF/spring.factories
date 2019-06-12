@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.buraequete.orikautomation.config.MapperConfiguration,\
+com.buraequete.orikautomation.config.EventConfiguration
