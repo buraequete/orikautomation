@@ -12,7 +12,7 @@
 	<description>Orika Mapping Automation with flattening, and string similarity logic</description>
 
 	<properties>
-		<org.springframework.version>5.1.7.RELEASE</org.springframework.version>
+		<org.springframework.version>5.2.24.RELEASE</org.springframework.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.target>1.8</maven.compiler.target>
